@@ -29,15 +29,29 @@ Requires Python 3.11+.
 > **Note:** `NO_COLOR`, including an empty value, turns colour off.
 > `--no-colour` does the same.
 
+## Formats
+
+Both wheels and source distributions are first-class inputs. The tool
+never installs them or puts them on `sys.path`.
+
+| Kind                | Extensions                | Recognised by                                        |
+| ------------------- | ------------------------- | ---------------------------------------------------- |
+| Wheel               | `.whl`                    | ZIP with `.dist-info`, `METADATA`, `WHEEL`, `RECORD` |
+| Source distribution | `.tar.gz`, `.tgz`, `.zip` | `PKG-INFO` and/or `pyproject.toml`                   |
+
+A tarball or ZIP without that metadata is an ordinary archive, not a
+Python package. Misleading extensions are reported. RECORD hash
+verification applies to wheels; sdists have no `RECORD` file.
+
 ## Quick Start
 
 ```bash
 package-autopsy inspect dist/mypackage-1.0.0-py3-none-any.whl
+package-autopsy inspect dist/mypackage-1.0.0.tar.gz
 package-autopsy modules dist/mypackage-1.0.0-py3-none-any.whl
-package-autopsy validate dist/mypackage-1.0.0-py3-none-any.whl
+package-autopsy validate dist/mypackage-1.0.0.tar.gz
 package-autopsy verify dist/mypackage-1.0.0-py3-none-any.whl
 package-autopsy audit dist/mypackage-1.0.0-py3-none-any.whl
-package-autopsy --version
 ```
 
 ## What it Does
@@ -58,10 +72,28 @@ package-autopsy check dist/ --config package-autopsy.toml
 package-autopsy report package.whl --format html --output package-report.html
 ```
 
-Commands: `inspect`, `contents`, `modules`, `commands`, `dependencies`,
-`compatibility`, `metadata`, `licences`, `binaries`, `validate`, `verify`,
-`compare`, `consistency`, `audit`, `graph`, `report`, `check`, `formats`,
-and `version`.
+## Commands
+
+| Command         | Description                                                                 |
+| --------------- | --------------------------------------------------------------------------- |
+| `inspect`       | Overview of identity, files, modules, dependencies, and RECORD status.      |
+| `contents`      | List packaged files and directories; optional tree, sort, and regex filter. |
+| `modules`       | Discover importable packages, modules, and implicit namespaces.             |
+| `commands`      | List console scripts, GUI scripts, and other entry points.                  |
+| `dependencies`  | Analyse Requires-Dist, extras, and environment markers.                     |
+| `compatibility` | Check Requires-Python and wheel tags against a target interpreter.          |
+| `metadata`      | Show core metadata, dynamic fields, and the declared build backend.         |
+| `licences`      | Inspect licence expressions, legacy License fields, and bundled files.      |
+| `binaries`      | Identify compiled extensions and bundled native binaries.                   |
+| `validate`      | Check distribution structure and metadata completeness.                     |
+| `verify`        | Recalculate RECORD hashes and check archive integrity.                      |
+| `compare`       | Diff two distributions: files, metadata, and modules.                       |
+| `consistency`   | Compare a wheel against its matching sdist.                                 |
+| `audit`         | Detect packaging issues and unexpected files.                               |
+| `graph`         | Show declared dependency relationships.                                     |
+| `report`        | Write a detailed report in text, Markdown, HTML, JSON, or CSV.              |
+| `check`         | Enforce packaging policy from TOML configuration.                           |
+| `formats`       | List supported archive formats and capabilities.                            |
 
 ## JSON Output
 
@@ -104,16 +136,6 @@ allow_direct_urls = false
 | `7`  | Resource limit exceeded                         |
 | `8`  | Partial batch failure                           |
 | `9`  | Incomplete required analysis                    |
-
-```bash
-package-autopsy version
-```
-
-```text
-package-autopsy 0.0.0
-```
-
-`package-autopsy --version` prints the same line.
 
 <a href="https://github.com/the-lupaxa-project">
   <img src="https://raw.githubusercontent.com/the-lupaxa-project/brand-assets/master/logos/components/footer-for-child-orgs.svg" alt="The Lupaxa Project Footer" width="100%" />
