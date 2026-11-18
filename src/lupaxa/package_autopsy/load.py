@@ -6,6 +6,9 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from packaging.utils import InvalidName, canonicalize_name
+from packaging.version import InvalidVersion, Version
+
 from lupaxa.package_autopsy.archive import SafeArchive, open_archive, sniff_magic
 from lupaxa.package_autopsy.config import Limits
 from lupaxa.package_autopsy.errors import (
@@ -385,43 +388,52 @@ def _load_sdist(dist: Distribution, limits: Limits) -> None:
         dist.build_backend = dist.build_backend or build_backend_from_pyproject(dist.pyproject)
 
 
-def _check_name_version(dist: Distribution, filename_name: str, filename_version: str) -> None:
-    from packaging.utils import canonicalize_name
-    from packaging.version import Version
+def _safe_canonical_name(value: str) -> str | None:
+    try:
+        return canonicalize_name(value)
+    except InvalidName:
+        return None
 
+
+def _safe_version(value: str) -> Version | None:
+    try:
+        return Version(value)
+    except InvalidVersion:
+        return None
+
+
+def _check_name_version(dist: Distribution, filename_name: str, filename_version: str) -> None:
     meta = dist.metadata
     if meta is None:
         return
     if meta.name:
-        try:
-            if canonicalize_name(meta.name) != canonicalize_name(str(filename_name).replace("_", "-")):
-                dist.findings.append(
-                    Finding(
-                        "IDENTITY-NAME-MISMATCH",
-                        "metadata",
-                        "error",
-                        f"Filename name {filename_name!r} does not match metadata name {meta.name!r}.",
-                        field="Name",
-                        standard="PEP 427 / PEP 625",
-                    )
+        meta_name = _safe_canonical_name(meta.name)
+        file_name = _safe_canonical_name(str(filename_name).replace("_", "-"))
+        if meta_name is not None and file_name is not None and meta_name != file_name:
+            dist.findings.append(
+                Finding(
+                    "IDENTITY-NAME-MISMATCH",
+                    "metadata",
+                    "error",
+                    f"Filename name {filename_name!r} does not match metadata name {meta.name!r}.",
+                    field="Name",
+                    standard="PEP 427 / PEP 625",
                 )
-        except Exception:
-            pass
+            )
     if meta.version:
-        try:
-            if Version(meta.version) != Version(str(filename_version)):
-                dist.findings.append(
-                    Finding(
-                        "IDENTITY-VERSION-MISMATCH",
-                        "metadata",
-                        "error",
-                        f"Filename version {filename_version} does not match metadata version {meta.version}.",
-                        field="Version",
-                        standard="PEP 440",
-                    )
+        meta_version = _safe_version(meta.version)
+        file_version = _safe_version(str(filename_version))
+        if meta_version is not None and file_version is not None and meta_version != file_version:
+            dist.findings.append(
+                Finding(
+                    "IDENTITY-VERSION-MISMATCH",
+                    "metadata",
+                    "error",
+                    f"Filename version {filename_version} does not match metadata version {meta.version}.",
+                    field="Version",
+                    standard="PEP 440",
                 )
-        except Exception:
-            pass
+            )
 
 
 def _rfc822_headers(data: bytes) -> dict[str, list[str]]:

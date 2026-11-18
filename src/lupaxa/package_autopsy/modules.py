@@ -49,28 +49,18 @@ def _module_from_relative(relative: str) -> tuple[str, str] | None:
             return None
         import_path = ".".join(posix.parts[:-1])
         return import_path, "package"
-    for suffix in SOURCE_SUFFIXES + STUB_SUFFIXES + NATIVE_SUFFIXES:
-        if name.endswith(suffix) and not name.startswith("."):
-            stem = name
-            for extra in (".cpython", ".abi3"):
-                if extra in stem:
-                    stem = stem.split(extra, 1)[0]
-                    break
-            else:
-                if suffix == ".so" and "." in stem[:-3]:
-                    stem = stem.split(".", 1)[0] + ".so"
-                stem = stem[: -len(suffix)] if stem.endswith(suffix) else stem
-            if suffix in NATIVE_SUFFIXES or name.endswith(".so"):
-                kind = "extension"
-                stem = name.split(".", 1)[0]
-            elif suffix in STUB_SUFFIXES:
-                kind = "stub"
-                stem = name[: -len(suffix)]
-            else:
-                kind = "module"
-                stem = name[: -len(suffix)]
-            import_path = ".".join((*posix.parts[:-1], stem))
-            return import_path, kind
+    if name.startswith("."):
+        return None
+    if name.endswith(".so") or name.endswith(".pyd"):
+        stem = name.split(".", 1)[0]
+        return ".".join((*posix.parts[:-1], stem)), "extension"
+    if name.endswith(".pyi"):
+        stem = name[: -len(".pyi")]
+        return ".".join((*posix.parts[:-1], stem)), "stub"
+    for suffix in SOURCE_SUFFIXES:
+        if name.endswith(suffix):
+            stem = name[: -len(suffix)]
+            return ".".join((*posix.parts[:-1], stem)), "module"
     return None
 
 

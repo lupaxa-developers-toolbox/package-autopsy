@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
-from packaging.version import Version
+from packaging.version import InvalidVersion, Version
 
 from lupaxa.package_autopsy.load import Distribution
 from lupaxa.package_autopsy.models import Finding
@@ -129,7 +129,7 @@ def _classifier_consistency(
                 full = version if version.count(".") >= 1 else version
                 try:
                     parsed = Version(full if "." in full else f"{full}.0")
-                except Exception:
+                except InvalidVersion:
                     continue
                 if parsed not in spec and not any(full.startswith(str(parsed.major)) for _ in [0]):
                     findings.append(
@@ -143,7 +143,7 @@ def _classifier_consistency(
                         )
                     )
         except InvalidSpecifier:
-            pass
+            return findings
     if python_tags and "py2" in {tag.lower() for tag in python_tags} and requires and "3" in requires:
         findings.append(
             Finding(
